@@ -19,7 +19,10 @@ An experimental and learning project to practice **Python concurrency** by combi
 
 Install dependencies:  
 ```bash
+
+pip install --upgrade pip setuptools wheel
 pip install -r requirements.txt
+pip install --only-binary=:all: yarl
 ```
 
 ## 🚀 Installation & Run
