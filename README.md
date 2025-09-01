@@ -10,7 +10,7 @@ An experimental and learning project to practice **Python concurrency** by combi
 - Scrapes Wikipedia pages using `requests`  
 - Parses HTML content with **BeautifulSoup4**  
 - Compares sequential vs. threaded execution for learning purposes  
-
+- Save data to a lab database
 ---
 
 ## 🚀 Getting Started  
@@ -19,7 +19,10 @@ An experimental and learning project to practice **Python concurrency** by combi
 
 Install dependencies:  
 ```bash
+
+pip install --upgrade pip setuptools wheel
 pip install -r requirements.txt
+pip install --only-binary=:all: yarl
 ```
 
 ## 🚀 Installation & Run
@@ -40,9 +43,10 @@ python main.py
 
 Python 3
 
-- threading – concurrency with threads
-- queue.Queue – task management between producer/consumer threads
+- Threading – concurrency with threads
+- Queue – task management between producer/consumer threads
 - Apply web scraping and parsing with BeautifulSoup
+- Postgres 
 
 ### 🎯 Purpose
 
@@ -52,7 +56,9 @@ This repository is for practicing and educational purposes. It was created to:
 
 - Use queues to coordinate tasks across multiple threads
 
-- Apply web scraping and parsing with BeautifulSoup
+- Apply web scraping and parsing with BeautifulSoup via concurrency
+
+- Store to Postgres
 
 ### 🤝 Contributing
 

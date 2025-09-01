@@ -22,6 +22,7 @@ import requests
 from lxml import html
 import time
 import random
+from datetime import datetime
 
 
 class YahooFinancePriceScheduler(threading.Thread):
@@ -38,7 +39,7 @@ class YahooFinancePriceScheduler(threading.Thread):
     to start the thread explicitly after construction.
     """
 
-    def __init__(self, input_queue,  **kwargs):
+    def __init__(self, input_queue, output_queue, **kwargs):
         """Initialize the scheduler and start the thread.
 
         Parameters
@@ -48,7 +49,8 @@ class YahooFinancePriceScheduler(threading.Thread):
             ``get(timeout=...)``.
         """
         super(YahooFinancePriceScheduler, self).__init__()
-        self._input_queue = input_queue       
+        self._input_queue = input_queue
+        self._output_queue = output_queue
         self.start()
 
     def run(self):
@@ -64,17 +66,26 @@ class YahooFinancePriceScheduler(threading.Thread):
             try:
                 val = self._input_queue.get(timeout=10)
             except Exception as e:
-                print(f'Yahoo scheduler queue schedule has exception as {e}, stopping')
+                print(f"Yahoo scheduler queue schedule has exception as {e}, stopping")
                 break
-            if val == 'DONE':
+            if val == "DONE":
+                if self._output_queue is not None:
+                    self._output_queue.put(("DONE", None, None))
                 break
             yahooFinacePriceWorker = YahooFinacePriceWorker(symbol=val)
             price = yahooFinacePriceWorker.get_price_for_symbol()
-            print(f"Yahoo scheduler queue got price {price} for symbol {val}")                 
+            # print(f"Yahoo scheduler queue got price {price} for symbol {val}")
+
+            if self._output_queue is not None and price is not None:
+                ingest_date = datetime.utcnow()
+                # output_vals = (val, price, int(time.time()))  
+                output_vals = ( val, price, ingest_date)             
+                self._output_queue.put(output_vals)
+                # print(f"Yahoo scheduler queue put price {price} for symbol {val} into output queue")
             time.sleep(random.random())  # to avoid hitting Yahoo too fast
 
 
-class YahooFinacePriceWorker():
+class YahooFinacePriceWorker:
     """Fetch the current price for a single Yahoo Finance ticker symbol.
 
     The class constructs the appropriate quote page URL for ``symbol`` and
@@ -82,6 +93,7 @@ class YahooFinacePriceWorker():
     ``get_price_for_symbol`` returns a floating point price on success or
     ``None`` on failure.
     """
+
     def __init__(self, symbol):
         """Create a worker for the provided ticker symbol.
 
@@ -91,13 +103,9 @@ class YahooFinacePriceWorker():
             Ticker symbol (for example, 'AAPL' or 'MSFT').
         """
         self._symbol = symbol
-        base_url = 'https://finance.yahoo.com/quote/'
-        self._url = f'{base_url}{self._symbol}'
-        # self._headers = {
-        #     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        #                   "AppleWebKit/537.36 (KHTML, like Gecko) "
-        #                   "Chrome/"
-        #                   }
+        base_url = "https://finance.yahoo.com/quote/"
+        self._url = f"{base_url}{self._symbol}"
+       
 
     def get_price_for_symbol(self):
         """Request the Yahoo quote page and parse the current price.
@@ -115,15 +123,15 @@ class YahooFinacePriceWorker():
           ``None`` return value and the exception (if any) is printed.
         """
         try:
-                r = requests.get(self._url)                
-                if r.status_code != 200:
-                    return
-                page_contents = html.fromstring(r.text)
-                path_id = '//*[@id="main-content-wrapper"]/section[6]/div/div/div/section[1]/div/div[2]/div'
-                raw_price = page_contents.xpath(path_id)[0].text        
-                price = float(raw_price.replace(',', ''))
-                # print(f"price for {self._symbol} is {price} USD as of {datetime.datetime.utcnow()} UTC ")
-                return price
-        except Exception as e:
-                print(f"    Exception getting price for {self._symbol}: {e} via url: {self._url}")
+            r = requests.get(self._url)
+            if r.status_code != 200:
                 return
+            page_contents = html.fromstring(r.text)
+            path_id = '//*[@id="main-content-wrapper"]/section[6]/div/div/div/section[1]/div/div[2]/div'
+            raw_price = page_contents.xpath(path_id)[0].text
+            price = float(raw_price.replace(",", ""))
+            # print(f"price for {self._symbol} is {price} USD as of {datetime.datetime.utcnow()} UTC ")
+            return price
+        except Exception as e:
+            print(f"    Exception getting price for {self._symbol}: {e} via url: {self._url}")
+            return
