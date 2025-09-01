@@ -33,15 +33,18 @@ class PostgresMasterSchedule(threading.Thread):
         # Implementation for managing master schedule with Postgres
         while True:
             try:
-                val = self._input_queue.get() # [symbol, price, scrapped_time] , (symbol, price, scrapped_time)
+                val = self._input_queue.get(timeout=7) # [symbol, price, scrapped_time] , (symbol, price, scrapped_time)
             except Exception as e:
                 print(f"Postgres master schedule has exception as {e}, stopping")
                 break
-            if val == "DONE":
-                break
+            
             # Process the task with PostgresWorker
             symbol, price, scrapped_time = val
-           
+            if symbol == "DONE":
+                print("Postgres master schedule received DONE signal, stopping")
+                break
+                # return
+                     
             postgres_worker = PostgresWorker( symbol, price, scrapped_time)
             postgres_worker.insert_into_db()
             print(f"Postgres master schedule processed task {val}")
@@ -63,7 +66,7 @@ class PostgresWorker:
         self._PG_PORT = os.environ.get("PG_PORT")
         self._PG_DB = os.environ.get("PG_DBNAME")
         self._connection_string = f"""postgresql+psycopg2://{self._PG_USER}:{self._PG__PWD}@{self._PG_HOST}:{self._PG_PORT}/{self._PG_DB}"""
-        print(f"PostgresWorker using connection string: {self._connection_string}")
+        # print(f"PostgresWorker using connection string: {self._connection_string}")
         self._engine = create_engine(self._connection_string)
         # self._engine = create_engine(
         #     "postgresql+psycopg2://",
@@ -78,7 +81,7 @@ class PostgresWorker:
     def _create_insert_query(self):
         """Return parameterized SQL insert statement for the prices table."""    
         SQL_STMT = """INSERT INTO prices (symbol, price, ingest_date) 
-                        VALUES (:symbol, :price, :ingest_date)
+                        VALUES (:symbol, :price, CAST(:ingest_date AS timestamp))                    
                    """
         return SQL_STMT
 

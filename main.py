@@ -33,19 +33,26 @@ def main():
         postgresScheduler = PostgresMasterSchedule(input_queue=postgres_queue)
         postgres_schedule_threads.append(postgresScheduler)
 
-
+    symbol_counter = 0
     for symbol in wikiWorker.get_sp_500_companies():
         symbol_queue.put(symbol)
-
+        symbol_counter += 1
+        print(f"main put symbol {symbol} into symbol_queue with counter as {symbol_counter} ")
+        # if symbol_counter >=5 :
+        #     break
+    
+      
     for i in range(len(yahoo_finance_scheduler_threads)):
-        symbol_queue.put(("DONE", None, None))  # signal end of input  for every scheduler thread
-
-    for i in range(len(yahoo_finance_scheduler_threads)):
-        yahoo_finance_scheduler_threads[i].join()
-    print("Total time taken for getting all the prices:", round(time.time() - scraper_start_time, 1), "seconds")
+        yahoo_finance_scheduler_threads[i].join()    
+    print("Total time taken for getting all the prices:", round(time.time() - scraper_start_time, 1), "seconds")      
+        
+    for i in range(len(postgres_schedule_threads)):
+        postgres_schedule_threads[i].join() 
+    postgres_queue.put(("DONE", None, None))     
+    
+    print("Total time taken for getting and storing all the prices:", round(time.time() - scraper_start_time, 1), "seconds")
     
     exit
-
 
 if __name__ == "__main__":
     main()

@@ -20,10 +20,7 @@ class WikiWorker(threading.Thread):
         table = soup.find("table", {"id": "constituents"})
         table_body = table.find_all("tbody")
         for tbody in table_body:
-            # print(f"tbody: {tbody}")
-            table_rows = tbody.find_all("tr")
-            # print(f"table_rows: {table_rows}")
-
+            table_rows = tbody.find_all("tr")           
             for table_row in table_rows:
                 cols = table_row.find_all("td")
                 if cols:

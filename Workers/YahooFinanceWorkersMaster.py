@@ -64,14 +64,15 @@ class YahooFinancePriceScheduler(threading.Thread):
         """
         while True:
             try:
-                val = self._input_queue.get(timeout=10)
+                val = self._input_queue.get(timeout=7)
             except Exception as e:
                 print(f"Yahoo scheduler queue schedule has exception as {e}, stopping")
-                break
+                break            
             if val == "DONE":
                 if self._output_queue is not None:
                     self._output_queue.put(("DONE", None, None))
                 break
+            
             yahooFinacePriceWorker = YahooFinacePriceWorker(symbol=val)
             price = yahooFinacePriceWorker.get_price_for_symbol()
             # print(f"Yahoo scheduler queue got price {price} for symbol {val}")
@@ -104,8 +105,7 @@ class YahooFinacePriceWorker:
         """
         self._symbol = symbol
         base_url = "https://finance.yahoo.com/quote/"
-        self._url = f"{base_url}{self._symbol}"
-       
+        self._url = f"{base_url}{self._symbol}"       
 
     def get_price_for_symbol(self):
         """Request the Yahoo quote page and parse the current price.
@@ -124,6 +124,7 @@ class YahooFinacePriceWorker:
         """
         try:
             r = requests.get(self._url)
+            # print(f"get_price_for_symbol: status code: {r.status_code} for url: {self._url}")
             if r.status_code != 200:
                 return
             page_contents = html.fromstring(r.text)
