@@ -22,6 +22,7 @@ import requests
 from lxml import html
 import time
 import random
+from datetime import datetime
 
 
 class YahooFinancePriceScheduler(threading.Thread):
@@ -76,7 +77,9 @@ class YahooFinancePriceScheduler(threading.Thread):
             # print(f"Yahoo scheduler queue got price {price} for symbol {val}")
 
             if self._output_queue is not None and price is not None:
-                output_vals = (val, price, int(time.time()))               
+                ingest_date = datetime.utcnow()
+                # output_vals = (val, price, int(time.time()))  
+                output_vals = ( val, price, ingest_date)             
                 self._output_queue.put(output_vals)
                 # print(f"Yahoo scheduler queue put price {price} for symbol {val} into output queue")
             time.sleep(random.random())  # to avoid hitting Yahoo too fast
@@ -102,11 +105,7 @@ class YahooFinacePriceWorker:
         self._symbol = symbol
         base_url = "https://finance.yahoo.com/quote/"
         self._url = f"{base_url}{self._symbol}"
-        self._headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/"
-        }
+       
 
     def get_price_for_symbol(self):
         """Request the Yahoo quote page and parse the current price.
@@ -124,8 +123,7 @@ class YahooFinacePriceWorker:
           ``None`` return value and the exception (if any) is printed.
         """
         try:
-            r = requests.get(self._url, headers=self._headers)
-            # print(f"get_price_for_symbol: status code: {r.status_code} for url: {self._url}")
+            r = requests.get(self._url)
             if r.status_code != 200:
                 return
             page_contents = html.fromstring(r.text)

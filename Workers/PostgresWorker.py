@@ -62,8 +62,7 @@ class PostgresWorker:
         self._PG_HOST = os.environ.get("PG_HOST", "localhost")
         self._PG_PORT = os.environ.get("PG_PORT")
         self._PG_DB = os.environ.get("PG_DBNAME")
-        self._connection_string = f"""postgresql+psycopg2://{self._PG_USER}:{self._PG__PWD}@{self._PG_HOST}:{self._PG_PORT}/{self._PG_DB}
-            """
+        self._connection_string = f"""postgresql+psycopg2://{self._PG_USER}:{self._PG__PWD}@{self._PG_HOST}:{self._PG_PORT}/{self._PG_DB}"""
         print(f"PostgresWorker using connection string: {self._connection_string}")
         self._engine = create_engine(self._connection_string)
         # self._engine = create_engine(
@@ -78,8 +77,8 @@ class PostgresWorker:
 
     def _create_insert_query(self):
         """Return parameterized SQL insert statement for the prices table."""    
-        SQL_STMT = """INSERT INTO yahoo_sp500_prices (symbol, price, scrapped_time) 
-                        VALUES (:symbol, :price, :scrapped_time)
+        SQL_STMT = """INSERT INTO prices (symbol, price, ingest_date) 
+                        VALUES (:symbol, :price, :ingest_date)
                    """
         return SQL_STMT
 
@@ -89,7 +88,7 @@ class PostgresWorker:
         try: 
             with self._engine.connect() as connection:
                 connection.execute(
-                    text(insert_query), {"symbol": self._symbol, "price": self._price, "scrapped_time": self._scrapped_time}
+                    text(insert_query), {"symbol": self._symbol, "price": self._price, "ingest_date": self._scrapped_time}
                 )
                 connection.commit()
             print(f"Inserted data for symbol {self._symbol} into Postgres database.")

@@ -38,7 +38,7 @@ def main():
         symbol_queue.put(symbol)
 
     for i in range(len(yahoo_finance_scheduler_threads)):
-        symbol_queue.put("DONE")  # signal end of input  for every scheduler thread
+        symbol_queue.put(("DONE", None, None))  # signal end of input  for every scheduler thread
 
     for i in range(len(yahoo_finance_scheduler_threads)):
         yahoo_finance_scheduler_threads[i].join()

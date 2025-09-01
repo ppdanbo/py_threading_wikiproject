@@ -5,7 +5,12 @@ from bs4 import BeautifulSoup
 
 class WikiWorker(threading.Thread):
     def __init__(self, url="https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"):
-        self._url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"      
+        self._url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"     
+        self._headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                          "AppleWebKit/537.36 (KHTML, like Gecko) "
+                          "Chrome/124.0.0.0 Safari/537.36"
+        } 
         super(WikiWorker, self).__init__()
         self.start()
 
@@ -27,7 +32,7 @@ class WikiWorker(threading.Thread):
 
     def get_sp_500_companies(self):
         print(f"url: {self._url}")
-        response = requests.get(self._url)
+        response = requests.get(self._url, headers=self._headers)
         # print(f"response.status_code: {response.status_code}")
         if response.status_code != 200:
             print("Couldn't get entries")
