@@ -50,7 +50,10 @@ class YahooFinancePriceScheduler(threading.Thread):
         """
         super(YahooFinancePriceScheduler, self).__init__()
         self._input_queue = input_queue
-        self._output_queue = output_queue
+        temp_queue = output_queue
+        if type(temp_queue) != list:
+            temp_queue = [temp_queue]
+        self._output_queues = temp_queue
         self.start()
 
     def run(self):
@@ -68,21 +71,23 @@ class YahooFinancePriceScheduler(threading.Thread):
             except Exception as e:
                 print(f"Yahoo scheduler queue schedule has exception as {e}, stopping")
                 break            
-            if val == "DONE":
-                if self._output_queue is not None:
-                    self._output_queue.put(("DONE", None, None))
+            if val == "DONE":                
+                if self._output_queues is not None:
+                    for output_queue in self._output_queues:
+                            output_queue.put(("DONE", None, None))                
                 break
             
             yahooFinacePriceWorker = YahooFinacePriceWorker(symbol=val)
             price = yahooFinacePriceWorker.get_price_for_symbol()
             # print(f"Yahoo scheduler queue got price {price} for symbol {val}")
 
-            if self._output_queue is not None and price is not None:
+            if self._output_queues is not None and price is not None:
                 ingest_date = datetime.utcnow()
                 # output_vals = (val, price, int(time.time()))  
-                output_vals = ( val, price, ingest_date)             
-                self._output_queue.put(output_vals)
-                # print(f"Yahoo scheduler queue put price {price} for symbol {val} into output queue")
+                output_vals = ( val, price, ingest_date) 
+                for output_queue in self._output_queues:            
+                    output_queue.put(output_vals)
+                # print(f"Yahoo scheduler queue put price {price} for symbol {val} into output queues")
             time.sleep(random.random())  # to avoid hitting Yahoo too fast
 
 
@@ -105,8 +110,8 @@ class YahooFinacePriceWorker:
         """
         self._symbol = symbol
         base_url = "https://finance.yahoo.com/quote/"
-        self._url = f"{base_url}{self._symbol}"       
-
+        self._url = f"{base_url}{self._symbol}"
+        
     def get_price_for_symbol(self):
         """Request the Yahoo quote page and parse the current price.
 

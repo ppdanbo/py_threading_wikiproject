@@ -14,6 +14,7 @@ def main():
     # make queue threading safe
     symbol_queue = Queue()
     postgres_queue = Queue()
+    process_queues = [postgres_queue]
     scraper_start_time = time.time()
 
     wikiWorker = WikiWorker()
@@ -22,7 +23,7 @@ def main():
     num_yahoo_finance_price_workers = 15
     for i in range(num_yahoo_finance_price_workers):
         print(f"main creating YahooFinancePriceScheduler thread {i}")
-        yahooFinancePriceScheduler = YahooFinancePriceScheduler(input_queue=symbol_queue, output_queue=postgres_queue)
+        yahooFinancePriceScheduler = YahooFinancePriceScheduler(input_queue=symbol_queue, output_queue=process_queues)
         yahoo_finance_scheduler_threads.append(yahooFinancePriceScheduler)
 
 
