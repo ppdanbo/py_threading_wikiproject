@@ -24,6 +24,10 @@ class PostgresMasterSchedule(threading.Thread):
     """Threaded master schedule for managing tasks with Postgres."""
 
     def __init__(self, input_queue, **kwargs):
+        if 'output_queues' in kwargs:
+            kwargs.pop('output_queues')
+        if 'output_queue' in kwargs:
+            kwargs.pop('output_queue')
         super(PostgresMasterSchedule, self).__init__(**kwargs)
         self._input_queue = input_queue
         self.start()
@@ -33,7 +37,7 @@ class PostgresMasterSchedule(threading.Thread):
         # Implementation for managing master schedule with Postgres
         while True:
             try:
-                val = self._input_queue.get(timeout=7) # [symbol, price, scrapped_time] , (symbol, price, scrapped_time)
+                val = self._input_queue.get() # [symbol, price, scrapped_time] , (symbol, price, scrapped_time)
             except Exception as e:
                 print(f"Postgres master schedule has exception as {e}, stopping")
                 break
@@ -48,7 +52,7 @@ class PostgresMasterSchedule(threading.Thread):
             postgres_worker = PostgresWorker( symbol, price, scrapped_time)
             postgres_worker.insert_into_db()
             print(f"Postgres master schedule processed task {val}")
-            time.sleep(random.random())  # to avoid hitting Postgres too fast
+            # time.sleep(random.random())  # to avoid hitting Postgres too fast
 
 
 class PostgresWorker:
