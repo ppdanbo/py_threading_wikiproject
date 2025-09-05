@@ -14,7 +14,7 @@ workers:
     note: Only have one instance since scan one url
     location: Workers.WikiWorker
     class: WikiWorkerScheduler
-    instance: 1  # donot change
+    instances: 1  # donot change
     input_values: 
       - 'https://en.wikipedia.org/wiki/List_of_S%26P_500_companies' 
     output_queues:

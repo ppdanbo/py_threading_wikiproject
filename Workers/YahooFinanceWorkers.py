@@ -16,13 +16,20 @@ Notes
     mirrors the original behavior and does not change runtime logic.
 """
 
-import threading
 import datetime
+import random
+import threading
+import time
+from datetime import datetime
+
 import requests
 from lxml import html
-import time
-import random
-from datetime import datetime
+
+import logging
+from utils.setup_logging import setup_logging
+setup_logging()
+logger = logging.getLogger(__name__)
+logger.info("YahooFinanceWorkers logging initialized")
 
 
 class YahooFinancePriceScheduler(threading.Thread):
@@ -71,11 +78,8 @@ class YahooFinancePriceScheduler(threading.Thread):
             except Exception as e:
                 print(f"Yahoo scheduler queue schedule has exception as {e}, stopping")
                 break            
-            if val == "DONE":                
-                # if self._output_queues is not None:
-                #     for output_queue in self._output_queues:
-                #             output_queue.put(("DONE", None, None))                
-                break
+            if val == "DONE":              
+               break
             
             yahooFinacePriceWorker = YahooFinacePriceWorker(symbol=val)
             price = yahooFinacePriceWorker.get_price_for_symbol()
@@ -90,7 +94,7 @@ class YahooFinancePriceScheduler(threading.Thread):
             time.sleep(random.random())  # to avoid hitting Yahoo too fast
 
 
-class YahooFinacePriceWorker:
+class YahooFinacePriceWorker():
     """Fetch the current price for a single Yahoo Finance ticker symbol.
 
     The class constructs the appropriate quote page URL for ``symbol`` and
@@ -109,7 +113,8 @@ class YahooFinacePriceWorker:
         """
         self._symbol = symbol
         base_url = "https://finance.yahoo.com/quote/"
-        self._url = f"{base_url}{self._symbol}"        
+        self._url = f"{base_url}{self._symbol}" 
+
 
     def get_price_for_symbol(self):
         """Request the Yahoo quote page and parse the current price.
@@ -128,7 +133,7 @@ class YahooFinacePriceWorker:
         """
         try:
             r = requests.get(self._url)
-            # print(f"get_price_for_symbol: status code: {r.status_code} for url: {self._url}")
+            
             if r.status_code != 200:
                 return
             page_contents = html.fromstring(r.text)
@@ -137,6 +142,6 @@ class YahooFinacePriceWorker:
             price = float(raw_price.replace(",", ""))
             # print(f"price for {self._symbol} is {price} USD as of {datetime.datetime.utcnow()} UTC ")
             return price
-        except Exception as e:
-            print(f"    Exception getting price for {self._symbol}: {e} via url: {self._url}")
+        except Exception as e:           
+            logger.error(f"Exception getting price for {self._symbol}: {e} via url: {self._url}")
             return

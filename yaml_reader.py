@@ -6,6 +6,12 @@ from multiprocessing import Queue
 
 import yaml
 
+import logging
+from utils.setup_logging import setup_logging
+setup_logging()
+logger = logging.getLogger(__name__)
+logger.info("yaml_reader logging initialized")
+
 class YamlPipelineExecutor(threading.Thread):
     
     def __init__(self, pipeline_location):
@@ -45,54 +51,63 @@ class YamlPipelineExecutor(threading.Thread):
             
             input_params = {                          
                 "input_queue": self._queues[input_queue] if input_queue is not None else None,
-                "output_queues": (
-                    [self._queues[output_q] for output_q in output_queues] \
+                "output_queues": [self._queues[output_q] for output_q in output_queues] \
                         if output_queues is not None else None
-                ),
             }
             input_values = worker.get('input_values')
             if input_values is not None: 
                 input_params['input_values'] = input_values
+            
             self._workers[worker_name] = []
             for i in range(num_instances):
                 self._workers[worker_name].append(workerClass(**input_params))
+
 
     def _join_workers(self):
         for worker_name in self._workers:
             for worker_thread in self._workers[worker_name]:
                 worker_thread.join()
 
+
     def process_pipeline(self):
-        ## init queues
         self._load_pipeline()
         self._init_queues()
         self._init_workers()
         # self._join_workers()  # this will block if run
-        
+
+
     def run(self):
         self.process_pipeline()
-        worker_stats = []
+        
         while True:
+            total_workers_alive = 0
+            worker_stats = []
+            to_del = []
             # monitor threads
             for worker_name in self._workers:
                 total_worker_threads_alive = 0
                 for worker_thread in self._workers[worker_name]:
                     if worker_thread.is_alive():
                         total_worker_threads_alive += 1
-                        
+                total_workers_alive += total_worker_threads_alive        
                 if total_worker_threads_alive == 0:
                     if self._downstream_queues[worker_name] is not None:
                         for output_queue in self._downstream_queues[worker_name]:
                             number_of_consumers = self._queue_consumers[output_queue]
                             for i in range(number_of_consumers):
                                 self._queues[output_queue].put('DONE')
-                    del self._workers[worker_name]   # skip the track once done   
+
+                    # del self._workers[worker_name]   # skip the track once done   
+                    to_del.append(worker_name)
             
-                worker_stats.append(worker_name, total_worker_threads_alive)
+                worker_stats.append((worker_name, total_worker_threads_alive))
                
             print(f"worker_stats:{worker_stats}")
-            if len(self._workers) == 0:
+            logger.debug("worker_stats: %s", worker_stats)
+            if total_workers_alive ==  0:
                     break
-            time.sleep(random.random()*5)
-
             
+            for worker_name in to_del:
+                del self._workers[worker_name]
+
+            time.sleep(1)            
