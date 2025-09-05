@@ -1,0 +1,38 @@
+queues: 
+  - name: SymbolQueue
+    description:  contains Symbols to be read from Yahoo 
+  
+  - name: PostgresUploading
+    description: contains data that needs to be uploaded to postgres
+
+## Notes: for queues, you don't want different workers to consume the same queue.
+## if share the same queue, you are running the risk of losing some data
+
+workers: 
+  - name: WikiWorker
+    description:  this read the raw wikipedia page and pulls out Symbols
+    note: Only have one instance since scan one url
+    location: Workers.WikiWorker
+    class: WikiWorkerScheduler
+    instances: 1  # donot change
+    input_values: 
+      - 'https://en.wikipedia.org/wiki/List_of_S%26P_500_companies' 
+    output_queues:
+      -  SymbolQueue    
+       
+  - name: YahooFinanceWorkers
+    description:  this will pull the price data from yahoo finance
+    location: Workers.YahooFinanceWorkers
+    class: YahooFinancePriceScheduler
+    instances: 10     # number of workers (a.k.a threads)
+    input_queue: SymbolQueue
+    output_queues: 
+      - PostgresUploading
+     
+  - name: PostgresWorker
+    description:  save data to a database
+    location: Workers.PostgresWorkers
+    class: PostgresMasterSchedule
+    instances: 4
+    input_queue: PostgresUploading
+

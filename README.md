@@ -69,4 +69,4 @@ Ideas to extend this project:
 - Save parsed results into a structured format ( JSON, database)
 
 - Benchmark performance: sequential vs. threading + queues
-  
+
